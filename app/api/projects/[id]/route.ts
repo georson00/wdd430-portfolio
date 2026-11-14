@@ -3,7 +3,7 @@ import { getProjectById } from "@/lib/projects-db";
 
 export async function GET(
     _request: Request,
-    { params }: { params: { id: string} }
+    { params }: { params: Promise<{ id: string}> }
 ) {
     const {id}  =  await params;
     const ProjectId = Number(id);

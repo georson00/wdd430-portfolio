@@ -1,57 +1,100 @@
+
 import { Suspense } from "react";
-import type { Project } from "@/lib/projects-db";
+import {
+  fetchFilteredProjects,
+  fetchProjectsPages,
+} from "@/lib/projects-db";
 
+import ProjectSearch from "@/components/ProjectSearch";
+import Pagination from "@/components/Pagination";
 
-/*const projects = [
-  {
-    title: 'HT Haiti Market – E-Commerce Web Application',
-    description: 'A website where the Haitian diaspora can buy goods for their family members in Haiti.',
-    technologies: ['HTML5', 'JavaScipt', 'CSS'],
-    link: 'https://github.com/georson00/hthaitimarket'
-  },
-  {
-    title: 'Service Network Web application',
-    description: 'A web app that promotes service across the world by connecting volunteers with service opportunities in their community.',
-    technologies: ['HTML','EJS','Node.js', 'JavaScript', 'CSS', 'PostgreSQL', 'Render'],
-    link: 'https://github.com/georson00/georges-cse340'
-  }
-];
-*/
+interface ProjectsPageProps {
+  searchParams: Promise<{
+    query?: string;
+    page?: string;
+  }>;
+}
 
-async function ProjectsList() { 
+async function ProjectsContent({
+  searchParams,
+}: ProjectsPageProps) {
+  const params = await searchParams;
 
-    const response = await fetch("http://localhost:3000/api/projects",
-        { cache: "no-store"}
-    );
-    
-    if (!response.ok){
-        throw new Error("Failed to fetch projects");
-    }
+  const query =
+    typeof params.query === "string"
+      ? params.query.trim().slice(0, 100)
+      : "";
 
-    const projects= await response.json();
+  const requestedPage = Number(params.page ?? "1");
 
-    return(
-        <ul>
-      {projects.map((project: { id: number; title: string }) => (
-        <li key={project.id}>{project.title}</li>
+  const totalPages = await fetchProjectsPages(query);
+
+  const parsedPage =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
+
+  const currentPage =
+    totalPages > 0
+      ? Math.min(parsedPage, totalPages)
+      : 1;
+
+  const projects = await fetchFilteredProjects(query, currentPage);
+
+  return (
+    <>
+      <ProjectSearch />
+
+      {projects.length === 0 ? (
+        <p>No projects found.</p>
+      ) : (
+        <ul className="space-y-4">
+          {projects.map((project) => (
+            <li key={project.id}>
+              <h2 className="font-semibold">
+                {project.title}
+              </h2>
+              <p>{project.description}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <Pagination
+        totalPages={totalPages}
+        currentPage={currentPage}
+      />
+    </>
+  );
+}
+
+export default function ProjectsPage({
+  searchParams,
+}: ProjectsPageProps) {
+  return (
+    <main className="p-6">
+      <h1 className="mb-4 text-3xl font-bold">
+        Projects Overview
+      </h1>
+
+      <Suspense fallback={<ProjectsSkeleton />}>
+        <ProjectsContent searchParams={searchParams} />
+      </Suspense>
+    </main>
+  );
+}
+
+function ProjectsSkeleton() {
+  return (
+    <div className="animate-pulse space-y-4">
+      <div className="h-10 w-full rounded bg-slate-200" />
+
+      {[1, 2, 3].map((item) => (
+        <div key={item} className="space-y-2">
+          <div className="h-6 w-48 rounded bg-slate-200" />
+          <div className="h-4 w-full rounded bg-slate-200" />
+        </div>
       ))}
-    </ul>
-    );
-
+    </div>
+  );
 }
-
-export default function ProjectsPage() {
-    return(
-        <main className="p-6">
-            <h1 className="mb-4 text-3xl font-bold"> Projects Overview</h1>
-            <Suspense fallback={<p>Loading projects...</p>}>
-            <ProjectsList />
-            </Suspense>
-        
-        </main>
-    );
-
-}
-
-
-
