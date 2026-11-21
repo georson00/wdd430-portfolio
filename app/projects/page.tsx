@@ -7,6 +7,10 @@ import {
 
 import ProjectSearch from "@/components/ProjectSearch";
 import Pagination from "@/components/Pagination";
+import Link from "next/link";
+import { deleteProject } from "@/lib/actions";
+
+
 
 interface ProjectsPageProps {
   searchParams: Promise<{
@@ -49,16 +53,41 @@ async function ProjectsContent({
         <p>No projects found.</p>
       ) : (
         <ul className="space-y-4">
-          {projects.map((project) => (
-            <li key={project.id}>
-              <h2 className="font-semibold">
-                {project.title}
-              </h2>
-              <p>{project.description}</p>
-            </li>
-          ))}
+          
+{projects.map((project) => {
+  const deleteProjectWithId = deleteProject.bind(null, project.id);
+
+  return (
+    <li key={project.id} className="rounded border p-4">
+      <h2 className="font-semibold">
+        {project.title}
+      </h2>
+
+      <p className="mb-3">{project.description}</p>
+
+      <div className="flex items-center gap-4">
+        <Link
+          href={`/projects/${project.id}/edit`}
+          className="text-blue-600 hover:underline"
+        >
+          Edit Project
+        </Link>
+
+        <form action={deleteProjectWithId}>
+          <button
+            type="submit"
+            className="text-red-600 hover:underline"
+          >
+            Delete Project
+          </button>
+        </form>
+      </div>
+    </li>
+  );
+})}
+
         </ul>
-      )}
+)}
 
       <Pagination
         totalPages={totalPages}
@@ -73,9 +102,18 @@ export default function ProjectsPage({
 }: ProjectsPageProps) {
   return (
     <main className="p-6">
-      <h1 className="mb-4 text-3xl font-bold">
-        Projects Overview
-      </h1>
+      <div className="mb-6 flex items-center justify-between">
+  <h1 className="text-3xl font-bold">
+    Projects Overview
+  </h1>
+
+  <Link
+    href="/projects/create"
+    className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+  >
+    + Create Project
+  </Link>
+</div>
 
       <Suspense fallback={<ProjectsSkeleton />}>
         <ProjectsContent searchParams={searchParams} />

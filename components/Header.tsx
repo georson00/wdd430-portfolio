@@ -1,4 +1,5 @@
 import NavLinks from "./NavLinks";
+import { Suspense } from "react";
 
 export default function Header() {
     return (
@@ -7,7 +8,10 @@ export default function Header() {
 
 
             <nav className="max-w-4xl mx-auto px-4 flex justify-betweeb items-center" >
-            <NavLinks />
+            <Suspense fallback={null}>
+                <NavLinks />
+            </Suspense>
+            
             </nav>
         
         </header>
