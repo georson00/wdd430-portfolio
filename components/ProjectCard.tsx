@@ -9,6 +9,7 @@ export default function ProjectCard({title, description, technologies, link}: Pr
     return (
         <article className="p-4 border-1-4 border-blue-600 bg-gray-500 rounded" >
             <h3 className="text-x1 font-bold mb-2">{title}</h3>
+                <p className="text-sm text-gray-600" >Description: {description}</p>
             <p className="text-sm text-gray-600" >
                 <strong>Technologies:</strong> {technologies.join(', ')}
             </p>

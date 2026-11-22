@@ -6,9 +6,6 @@ interface ContactCardProps {
     linkedIn: string;
 }
 
-interface ContactInfoProps {
-    contactInfo: ContactCardProps[];
-}
 
 export default function ContactCard ({ email, phone, linkedIn}: ContactCardProps) {
   return (

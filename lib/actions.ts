@@ -6,67 +6,134 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+
+export type State = {
+  errors?: {
+    title?: string[];
+    description?: string[];
+    technologies?: string[];
+    type?: string[];
+    link?: string[];
+    yearCompleted?: string[];
+  };
+  message?: string | null;
+};
+
+
 const ProjectFormSchema = z.object({
-  title: z.string().trim().min(2),
-  description: z.string().trim().min(10),
-  technologies: z.string().trim().min(2),
+  title: z.string().trim().min(3, "Title must be at least 3 characters."),
+
+  description: z.string().trim().min(
+    20, 
+    "Description must be at least 20 characters."
+  ),
+
+  technologies: z.string().trim().min(
+    2,
+    "Add at least one technology."
+    ),
+
   type: z.enum(["school", "opensource"]),
+
   link: z.union([z.url(), z.literal("")]),
+
+
 });
 
+const CreateProjectSchema = ProjectFormSchema.extend({
+  yearCompleted: z.coerce
+    .number()
+    .int("Year must be a whole number.")
+    .gte(2000, "Year must be 2000 or later.")
+    .lte(new Date().getFullYear(), "Year cannot be in the future."),
+});
 
 //-------------PROJECT CREATION-----------------------
 
-export async function createProject(formData: FormData) {
-  //Extract submitted form values
+export async function createProject(
+    prevSate: State,
+    formData: FormData
+): Promise<State> {
+ 
   const rawData = {
     title: formData.get("title"),
     description: formData.get("description"),
     technologies: formData.get("technologies"),
     type: formData.get("type"),
     link: formData.get("link") ?? "",
+    yearCompleted: formData.get("yearCompleted"),
   };
 
   //Validate the submitted data
-  const parsed = ProjectFormSchema.safeParse(rawData);
+  const validatedFields = CreateProjectSchema.safeParse(rawData);
 
-  if (!parsed.success) {
-    throw new Error("Invalid project input.");
+  if (!validatedFields.success) {
+    return{
+        errors: validatedFields.error.flatten().fieldErrors,
+        message:  "Missing or invalid fields. Failed to create project.",
+    };
+    
   }
 
   //Extract validated values
-  const { title, description, type, link } = parsed.data;
+  const { 
+    title, 
+    description,
+    technologies, 
+    type, 
+    link,
+    yearCompleted
+    } = validatedFields.data;
+
 
   //Convert technologies into an array
-  const technologies = parsed.data.technologies
+  const technologiesArray = technologies
     .split(",")
     .map((tech) => tech.trim())
     .filter(Boolean);
 
-  if (technologies.length === 0) {
-    throw new Error("At least one technology is required.");
+  if (technologiesArray.length === 0) {
+    return{
+        errors: {
+            technologies: ["Add at least one technology."],
+        },
+        message: "Failed to create project.",
+    };
   }
 
   //Insert the project into PostgreSQL
   
-const technologiesValue = technologies.join(",");
+const technologiesValue = technologiesArray.join(",");
 
-await sql`
+try{
+    await sql`
   INSERT INTO projects (
     title,
     description,
     type,
     technologies,
-    link
+    link,
+    year_completed
   )
   VALUES (
     ${title},
     ${description},
     ${type},
     string_to_array(${technologiesValue}, ','),
-    ${link || null}
+    ${link || null},
+    ${yearCompleted}
   )
 `;
+
+}catch (error){
+    console.error("Failed to create project:", error);
+
+    return {
+        message: "Database Error: Failed to create project.",
+    };
+
+}
+
 
 
   //Refresh the projects page
